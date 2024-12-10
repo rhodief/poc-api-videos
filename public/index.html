@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Upload and Playback</title>
+</head>
+<body>
+  <h1>Upload a Private Video</h1>
+  <form id="uploadForm">
+    <input type="text" id="title" placeholder="Video Title" required><br>
+    <input type="text" id="description" placeholder="Video Description" required><br>
+    <input type="file" id="videoFile" accept="video/*" required><br>
+    <button type="submit">Upload Video</button>
+  </form>
+
+  <h2>Play a Private Video by ID</h2>
+  <input type="text" id="videoIdInput" placeholder="Enter Video ID" value="vi1lYcN7LqloFi9gPe3quPLp"><br>
+  <button id="playVideoButton">Play Video</button>
+
+  <h2>Video Playback</h2>
+  <div id="videoContainer"></div>
+
+  <script>
+    // Upload Video
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const file = document.getElementById('videoFile').files[0];
+
+      // Create a private video
+      const videoResponse = await fetch('/create-private-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description })
+      });
+      const videoData = await videoResponse.json();
+
+      // Generate an upload token
+      const tokenResponse = await fetch('/generate-upload-token');
+      const tokenData = await tokenResponse.json();
+      // Upload the video directly to api.video
+      console.log('PRIVATE', videoData, tokenData)
+
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadResponse = await fetch(`https://ws.api.video/upload?token=${tokenData.token}`, {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadResponse.json();
+
+      if (uploadResponse.ok) {
+        alert(`Video uploaded successfully! Video ID: ${uploadData.videoId}`);
+      } else {
+        alert(`Upload failed: ${uploadData.message}`);
+      }
+    });
+
+    // Play Video by ID
+    document.getElementById('playVideoButton').addEventListener('click', async () => {
+      const videoId = document.getElementById('videoIdInput').value.trim();
+      if (!videoId) {
+        alert('Please enter a video ID.');
+        return;
+      }
+
+      // Retrieve the playback URL with access token
+      const playbackResponse = await fetch(`/get-video/${videoId}`);
+      const playbackData = await playbackResponse.json();
+
+      if (playbackResponse.ok) {
+        const player = playbackData.player
+        const thumbnail = playbackData.thumbnail
+        // Display the video
+        console.log(player, thumbnail)
+        const videoContainer = document.getElementById('videoContainer');
+        videoContainer.innerHTML = playbackData.iframe;
+      } else {
+        alert(`Error: ${playbackData.error}`);
+      }
+    });
+  </script>
+</body>
+</html>

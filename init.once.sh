@@ -1,0 +1,1 @@
+docker run -it --name lab_videos -p "3003:3000" -v ".:/app"  lab/api-videos
